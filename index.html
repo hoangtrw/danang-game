@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Đà Nẵng Life Simulator: Reality Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        * { font-family: 'Plus Jakarta Sans', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { background: #090d16; color: #f8fafc; overflow-x: hidden; }
+        .glass { background: rgba(15, 23, 42, 0.78); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.12); }
+        .glass-card { background: rgba(30, 41, 59, 0.65); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.08); transition: all 0.2s ease; }
+        .glass-card:hover { border-color: rgba(56, 189, 248, 0.5); transform: translateY(-2px); }
+        .scenery-transition { transition: filter 1.2s ease, transform 0.25s ease-out; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.4); }
+        ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.5); border-radius: 99px; }
+        @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); } 50% { box-shadow: 0 0 28px rgba(245, 158, 11, 0.85); } }
+        .dragon-btn { animation: pulseGlow 2s infinite; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- TOP HEADER BAR -->
+    <header class="glass sticky top-0 z-40 px-3 py-2.5 lg:px-6 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                <i class="fa-solid fa-bridge-water text-white text-lg"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="font-extrabold text-sm lg:text-base tracking-tight bg-gradient-to-r from-cyan-300 via-sky-200 to-amber-300 bg-clip-text text-transparent">ĐÀ NẴNG LIFE SIMULATOR</h1>
+                    <span id="badge-rank" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">Tân Binh Phố Biển</span>
+                </div>
+                <div class="flex items-center gap-3 text-xs text-slate-300 mt-0.5">
+                    <span id="ui-day"><i class="fa-regular fa-calendar text-cyan-400 mr-1"></i>Ngày 1</span>
+                    <span id="ui-time" class="font-semibold text-amber-300"><i class="fa-regular fa-clock mr-1"></i>06:00 - Sáng Sớm</span>
+                    <span id="ui-weather" class="hidden sm:inline-block text-sky-300"><i class="fa-solid fa-sun mr-1"></i>Nắng đẹp 28°C</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- STATS BAR -->
+        <div class="flex items-center gap-2 sm:gap-4 w-full lg:w-auto justify-between lg:justify-end border-t lg:border-t-0 pt-2 lg:pt-0 border-slate-800/80">
+            <div class="flex items-center gap-3">
+                <!-- Energy -->
+                <div class="w-24 sm:w-28">
+                    <div class="flex justify-between text-[11px] font-semibold mb-0.5">
+                        <span class="text-emerald-400"><i class="fa-solid fa-bolt mr-1"></i>Thể lực</span>
+                        <span id="stat-energy-text">100/100</span>
+                    </div>
+                    <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div id="stat-energy-bar" class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300" style="width: 100%"></div>
+                    </div>
+                </div>
+                <!-- Chill -->
+                <div class="w-24 sm:w-28">
+                    <div class="flex justify-between text-[11px] font-semibold mb-0.5">
+                        <span class="text-pink-400"><i class="fa-solid fa-heart mr-1"></i>Độ Chill</span>
+                        <span id="stat-chill-text">80/100</span>
+                    </div>
+                    <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div id="stat-chill-bar" class="h-full bg-gradient-to-r from-pink-500 to-rose-400 transition-all duration-300" style="width: 80%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <div class="px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-700 text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-wallet"></i>
+                    <span id="stat-money">250.000đ</span>
+                </div>
+                <div class="px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-700 text-xs font-bold text-cyan-400 hidden sm:flex items-center gap-1">
+                    <i class="fa-solid fa-star"></i>
+                    <span id="stat-exp">0 EXP</span>
+                </div>
+                <button onclick="toggleAudio()" id="btn-audio" class="p-2 rounded-lg glass-card text-slate-300 hover:text-white" title="Bật/Tắt Âm thanh">
+                    <i class="fa-solid fa-volume-high"></i>
+                </button>
+                <button onclick="openQRModal()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-cyan-500/25">
+                    <i class="fa-solid fa-qrcode"></i>
+                    <span class="hidden md:inline">QR Chơi Đa Thiết Bị</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN DUAL-LAYOUT CONTAINER (PC WIDESCREEN & MOBILE STACK) -->
+    <main class="flex-1 max-w-[1600px] w-full mx-auto p-2 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
+        
+        <!-- LEFT COLUMN: REALISTIC VISUAL VIEWPORT & INTERACTIVE MAP (7 COLS ON PC) -->
+        <section class="lg:col-span-7 flex flex-col gap-3">
+            
+            <!-- VISUAL VIEWPORT (PARALLAX + SHADER + CANVAS PARTICLES) -->
+            <div id="viewport-container" class="relative w-full h-[270px] sm:h-[360px] lg:h-[420px] rounded-2xl overflow-hidden border border-slate-700/80 shadow-2xl bg-slate-950 select-none">
+                
+                <!-- Background Real Photo Layer -->
+                <div id="scenery-bg" class="absolute inset-0 bg-cover bg-center scenery-transition scale-105" style="background-image: url('https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=1400&q=80');"></div>
+                
+                <!-- Dynamic Time/Weather Lighting Overlay -->
+                <div id="scenery-lighting" class="absolute inset-0 pointer-events-none transition-all duration-1000" style="background: linear-gradient(180deg, rgba(14,165,233,0.15) 0%, rgba(15,23,42,0.75) 100%);"></div>
+
+                <!-- Architectural SVG Overlay (Dragon Bridge / Landmarks silhouette) -->
+                <svg id="landmark-svg" class="absolute bottom-0 left-0 w-full h-28 pointer-events-none opacity-85" viewBox="0 0 800 120" preserveAspectRatio="none">
+                    <path d="M0,105 Q100,45 200,95 T400,60 T600,90 T800,70 L800,120 L0,120 Z" fill="rgba(15,23,42,0.65)"/>
+                    <path id="svg-dragon-arch" d="M80,95 Q160,15 260,90 Q360,10 460,90 Q560,25 650,90" fill="none" stroke="#f59e0b" stroke-width="4" stroke-linecap="round" stroke-dasharray="8 4"/>
+                </svg>
+
+                <!-- 60FPS Particle & Mini-game Canvas Layer -->
+                <canvas id="fx-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
+
+                <!-- Top Location Overlay Info -->
+                <div class="absolute top-3 left-3 right-3 flex justify-between items-start z-20 pointer-events-none">
+                    <div class="glass px-3.5 py-2 rounded-xl border border-white/15 shadow-lg">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                            <h2 id="loc-title" class="font-extrabold text-sm sm:text-base text-white">Cầu Rồng & Bờ Đông Sông Hàn</h2>
+                        </div>
+                        <p id="loc-desc" class="text-[11px] sm:text-xs text-slate-300 mt-0.5">Biểu tượng Đà Nẵng rực rỡ, nơi hóng gió và ngắm Rồng phun lửa.</p>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5 pointer-events-auto">
+                        <button onclick="triggerDragonFire()" class="dragon-btn px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-red-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg">
+                            <i class="fa-solid fa-fire"></i> Phun Lửa & Nước
+                        </button>
+                        <button onclick="cycleWeather()" class="glass px-2.5 py-1 rounded-xl text-[11px] text-sky-200 hover:bg-slate-800/80 flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-cloud-Showers-heavy"></i> Đổi Thời Tiết
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bottom Quick Action Floating Overlay -->
+                <div class="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 z-20">
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="advanceTime()" class="glass hover:bg-sky-500/30 px-3 py-1.5 rounded-xl text-xs font-bold text-sky-300 flex items-center gap-1.5 border border-sky-400/30">
+                            <i class="fa-solid fa-forward-step"></i>Qua Buổi Tiếp Theo
+                        </button>
+                        <button onclick="openPhotoMode()" class="glass hover:bg-pink-500/30 px-3 py-1.5 rounded-xl text-xs font-bold text-pink-300 flex items-center gap-1.5 border border-pink-400/30">
+                            <i class="fa-solid fa-camera-retro"></i>Chụp & Chỉnh Màu
+                        </button>
+                    </div>
+                    <div class="glass px-3 py-1 rounded-lg text-[11px] text-amber-200">
+                        <i class="fa-solid fa-motorcycle mr-1"></i>Xe máy: <b>Honda Wave RSX</b>
+                    </div>
+                </div>
+
+                <!-- MINI-GAME OVERLAY MODAL INSIDE VIEWPORT -->
+                <div id="minigame-overlay" class="hidden absolute inset-0 bg-slate-950/95 z-30 flex flex-col justify-between p-3">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <div>
+                            <h3 id="mg-title" class="font-extrabold text-sm text-amber-400">🛵 SHIPPER CÔNG NGHỆ VƯỢT PHỐ ĐÀ NẴNG</h3>
+                            <p id="mg-sub" class="text-[11px] text-slate-400">Dùng phím W/A/S/D, phím Mũi tên hoặc nút bên dưới để lách xe giao đơn!</p>
+                        </div>
+                        <button onclick="closeMiniGame()" class="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 text-xs font-bold border border-rose-500/30">Đóng [X]</button>
+                    </div>
+                    
+                    <div class="relative flex-1 flex items-center justify-center my-1 overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
+                        <canvas id="mg-canvas" width="520" height="240" class="w-full h-full object-contain"></canvas>
+                        <div id="mg-hud" class="absolute top-2 left-3 right-3 flex justify-between text-xs font-bold pointer-events-none">
+                            <span id="mg-score" class="bg-slate-900/80 px-2.5 py-1 rounded text-emerald-400">Quãng đường: 0/100m</span>
+                            <span id="mg-timer" class="bg-slate-900/80 px-2.5 py-1 rounded text-amber-300">Đơn: Cơm Tấm Sườn + Mì Quảng</span>
+                        </div>
+                    </div>
+
+                    <!-- Touch Controls for Mobile & Mouse -->
+                    <div id="mg-controls" class="flex items-center justify-between gap-2 pt-1">
+                        <div class="flex gap-2">
+                            <button onpointerdown="mgMove(-1)" onpointerup="mgStop()" class="px-5 py-2 rounded-xl bg-slate-800 active:bg-cyan-600 text-white font-bold text-xs"><i class="fa-solid fa-arrow-up mr-1"></i>Lên (W)</button>
+                            <button onpointerdown="mgMove(1)" onpointerup="mgStop()" class="px-5 py-2 rounded-xl bg-slate-800 active:bg-cyan-600 text-white font-xs font-bold"><i class="fa-solid fa-arrow-down mr-1"></i>Xuống (S)</button>
+                        </div>
+                        <button id="mg-action-btn" onclick="mgSpecialAction()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-extrabold text-xs shadow-lg">
+                            ⚡ Tăng Tốc / Sút Bóng (Space)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GPS DISTRICT SELECTOR BAR -->
+            <div class="glass rounded-2xl p-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-cyan-400"><i class="fa-solid fa-location-dot mr-1.5"></i>Bản Đồ GPS 5 Khu Vực Đà Nẵng</span>
+                    <span class="text-[11px] text-slate-400">Chạm để di chuyển (-5 Thể lực)</span>
+                </div>
+                <div id="district-tabs" class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <!-- ACTIVITIES & AUTHENTIC DA NANG CUISINE -->
+            <div class="glass rounded-2xl p-3.5 flex-1 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-2.5">
+                        <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                            <i class="fa-solid fa-utensils text-amber-400"></i>
+                            <span>Trải Nghiệm, Ẩm Thực & Hoạt Động Tại Đây</span>
+                        </h3>
+                        <span id="loc-tag" class="text-[11px] px-2 py-0.5 rounded bg-sky-500/20 text-sky-300">Quận Hải Châu</span>
+                    </div>
+                    <div id="actions-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Special Mini-games & Part-time Jobs Bar -->
+                <div class="mt-3 pt-3 border-t border-slate-800/90 flex flex-wrap items-center justify-between gap-2">
+                    <span class="text-xs font-bold text-amber-300"><i class="fa-solid fa-gamepad mr-1"></i>Hoạt động Đặc biệt:</span>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="startShipperGame()" class="px-3 py-1.5 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-400/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-motorcycle"></i> Chạy Shipper (+90k)
+                        </button>
+                        <button onclick="startFootballGame()" class="px-3 py-1.5 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-400/40 text-blue-300 text-xs font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-futbol"></i> Đá Bóng Sân 5 Chân Trái
+                        </button>
+                        <button onclick="startDialectQuiz()" class="px-3 py-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-400/40 text-purple-300 text-xs font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-comments"></i> Đố Vui Tiếng Đà Nẵng
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- RIGHT COLUMN: DANANG-OS SMARTPHONE + LIVE LOG + PERMANENT QR HUB (5 COLS ON PC) -->
+        <section class="lg:col-span-5 flex flex-col gap-3">
+            
+            <!-- DANANG-OS PHONE INTERFACE -->
+            <div class="glass rounded-2xl p-3.5 border border-slate-700/80 flex flex-col gap-3">
+                <!-- Phone Status Bar -->
+                <div class="flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800 pb-2">
+                    <span class="font-bold text-white"><i class="fa-brands fa-apple mr-1"></i>DanangOS 18 • 5G</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="switchPhoneTab('feed')" id="tab-btn-feed" class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold">Nhật Ký</button>
+                        <button onclick="switchPhoneTab('camera')" id="tab-btn-camera" class="px-2 py-0.5 rounded hover:bg-slate-800">Tone Ảnh</button>
+                        <button onclick="switchPhoneTab('badges')" id="tab-btn-badges" class="px-2 py-0.5 rounded hover:bg-slate-800">Danh Hiệu</button>
+                    </div>
+                </div>
+
+                <!-- TAB 1: ACTIVITY FEED & DIALECT QUIZ -->
+                <div id="phone-tab-feed" class="flex flex-col gap-2">
+                    <div id="event-box" class="hidden p-3 rounded-xl bg-gradient-to-r from-indigo-950 to-slate-900 border border-indigo-400/40">
+                        <h4 id="event-title" class="text-xs font-extrabold text-indigo-300 mb-1">🎲 SỰ KIỆN BẤT NGỜ</h4>
+                        <p id="event-text" class="text-xs text-slate-200 mb-2"></p>
+                        <div id="event-choices" class="flex flex-wrap gap-2"></div>
+                    </div>
+
+                    <div class="text-xs font-bold text-slate-400 flex justify-between items-center">
+                        <span><i class="fa-solid fa-bolt-lightning text-amber-400 mr-1"></i>Nhật ký sống tại Đà Nẵng</span>
+                        <button onclick="resetGame()" class="text-[11px] text-rose-400 hover:underline">Chơi lại từ đầu</button>
+                    </div>
+                    <div id="activity-log" class="h-48 overflow-y-auto space-y-2 pr-1 text-xs">
+                        <!-- Logs appended here -->
+                    </div>
+                </div>
+
+                <!-- TAB 2: DARK MOODY PHOTO EDITOR (IOS PHOTOS STYLE) -->
+                <div id="phone-tab-camera" class="hidden flex-col gap-2.5">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-pink-300"><i class="fa-solid fa-sliders mr-1"></i>Chỉnh Màu iOS Photos (Dark Moody)</span>
+                        <div class="flex gap-1">
+                            <button onclick="applyPhotoPreset('moody')" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-amber-300 border border-amber-500/30">Tone Dark Moody</button>
+                            <button onclick="applyPhotoPreset('vivid')" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-cyan-300">Biển Nắng</button>
+                            <button onclick="applyPhotoPreset('reset')" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">Gốc</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[11px]">
+                        <div>
+                            <label class="flex justify-between text-slate-300"><span>Phơi sáng (Brightness)</span><span id="val-bright">90%</span></label>
+                            <input type="range" id="slider-bright" min="50" max="140" value="90" oninput="updatePhotoFilter()" class="w-full accent-cyan-400">
+                        </div>
+                        <div>
+                            <label class="flex justify-between text-slate-300"><span>Tương phản (Contrast)</span><span id="val-contrast">125%</span></label>
+                            <input type="range" id="slider-contrast" min="80" max="170" value="125" oninput="updatePhotoFilter()" class="w-full accent-cyan-400">
+                        </div>
+                        <div>
+                            <label class="flex justify-between text-slate-300"><span>Độ bão hòa (Saturate)</span><span id="val-sat">85%</span></label>
+                            <input type="range" id="slider-sat" min="30" max="160" value="85" oninput="updatePhotoFilter()" class="w-full accent-cyan-400">
+                        </div>
+                        <div>
+                            <label class="flex justify-between text-slate-300"><span>Độ ấm (Sepia/Warmth)</span><span id="val-sepia">15%</span></label>
+                            <input type="range" id="slider-sepia" min="0" max="60" value="15" oninput="updatePhotoFilter()" class="w-full accent-cyan-400">
+                        </div>
+                    </div>
+                    <button onclick="postPhotoToFeed()" class="w-full py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold text-xs shadow-lg">
+                        📸 Chụp Cảnh Hiện Tại & Đăng Nhận Thưởng (+35.000đ)
+                    </button>
+                </div>
+
+                <!-- TAB 3: ACHIEVEMENTS / BADGES -->
+                <div id="phone-tab-badges" class="hidden flex-col gap-2">
+                    <span class="text-xs font-bold text-amber-300">🏆 Bộ Sưu Tập Danh Hiệu Thổ Địa Đà Nẵng</span>
+                    <div id="badges-grid" class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ALWAYS-ON QR CODE & CROSS-DEVICE SYNC PANEL (FOR PC & 3G/4G MOBILE) -->
+            <div class="glass rounded-2xl p-3.5 border border-cyan-500/30 flex flex-col justify-between gap-2">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xs font-extrabold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-tower-broadcast animate-pulse"></i> Trạm Quét QR Đa Thiết Bị (3G/4G/PC)
+                        </h3>
+                        <p class="text-[11px] text-slate-400">Quét mã bên cạnh bằng Camera điện thoại để chơi & đồng bộ tiền/EXP tức thì.</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center gap-3 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+                    <div id="side-qrcode" class="p-2 bg-white rounded-xl shrink-0"></div>
+                    <div class="flex-1 w-full space-y-1.5">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Link Public Web / IP LAN hiện tại:</label>
+                        <input id="qr-url-input" type="text" oninput="refreshQRCodes()" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-cyan-300 font-mono" placeholder="https://...">
+                        <div class="flex flex-wrap gap-1.5 pt-1">
+                            <button onclick="syncStateToQR()" class="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 text-[11px] font-bold">
+                                <i class="fa-solid fa-cloud-arrow-up mr-1"></i>Gắn Tiến Trình Vào QR
+                            </button>
+                            <button onclick="copyShareLink()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold">
+                                <i class="fa-regular fa-copy mr-1"></i>Copy Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- MODAL QR FULLSCREEN -->
+    <div id="qr-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="glass max-w-md w-full rounded-2xl p-5 border border-cyan-500/40 text-center space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-extrabold text-base text-cyan-300"><i class="fa-solid fa-qrcode mr-1.5"></i>Quét QR Chơi Bằng 3G/4G</h3>
+                <button onclick="closeQRModal()" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="modal-qrcode" class="mx-auto w-48 h-48 p-3 bg-white rounded-2xl flex items-center justify-center shadow-xl"></div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                Khi bạn đưa file này lên <b>Netlify Drop</b> hoặc <b>GitHub Pages</b>, mã QR này sẽ tự động chứa đường link HTTPS vĩnh viễn kèm số Tiền & EXP hiện tại của bạn.
+            </p>
+            <button onclick="closeQRModal()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 font-bold text-xs text-white">Đã Hiểu & Đóng</button>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // 1. DATABASE ĐỊA ĐIỂM, ẨM THỰC & HOẠT ĐỘNG ĐÀ NẴNG
+        // =========================================================================
+        const DISTRICTS = [
+            {
+                id: 'haichau',
+                name: 'Hải Châu',
+                title: 'Cầu Rồng & Phố Bạch Đằng',
+                desc: 'Trung tâm nhộn nhịp bên bờ sông Hàn, thiên đường ẩm thực Chợ Cồn.',
+                photo: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=1400&q=80',
+                actions: [
+                    { name: 'Tô Mì Quảng Ếch Bếp Trang', cost: -35000, energy: 25, chill: 15, exp: 12, icon: 'fa-bowl-food', msg: 'Bẻ miếng bánh tráng nướng giòn rụm, cắn trái ớt xanh cay xè đúng chuẩn vị Quảng!' },
+                    { name: 'Phá Đảo Khu Ẩm Thực Chợ Cồn', cost: -50000, energy: 35, chill: 25, exp: 18, icon: 'fa-store', msg: 'Làm một vòng bánh bèo, bột lọc, ốc hút và chè chuối nướng thơm lừng tại Chợ Cồn!' },
+                    { name: 'Bánh Xèo Bà Dưỡng & Nem Lụi', cost: -55000, energy: 30, chill: 20, exp: 15, icon: 'fa-utensils', msg: 'Bánh xèo giòn rụm cuốn rau sống chấm nước lèo gan đậu phộng béo ngậy.' },
+                    { name: 'Trà Tắc Vỉa Hè Đường Bạch Đằng', cost: -15000, energy: 10, chill: 22, exp: 10, icon: 'fa-glass-water', msg: 'Ngồi ghế nhựa hóng gió sông Hàn, ngắm Cầu Rồng lên đèn lung linh.' }
+                ]
+            },
+            {
+                id: 'sontra',
+                name: 'Sơn Trà',
+                title: 'Biển Mỹ Khê & Bán Đảo Sơn Trà',
+                desc: 'Một trong những bãi biển quyến rũ nhất hành tinh và cung đường săn mây Đỉnh Bàn Cờ.',
+                photo: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=80',
+                actions: [
+                    { name: 'Tắm Biển Mỹ Khê Ngắm Bình Minh', cost: 0, energy: -10, chill: 35, exp: 20, icon: 'fa-person-swimming', msg: 'Sóng biển Mỹ Khê mát lạnh lúc 5h30 sáng làm tinh thần sảng khoái tột độ!' },
+                    { name: 'Cà Phê Muối Xe Đẩy Võ Nguyên Giáp', cost: -20000, energy: 18, chill: 25, exp: 12, icon: 'fa-mug-hot', msg: 'Nhâm nhi ly cà phê kem muối mặn ngọt béo ngậy vừa nhìn ra biển xanh.' },
+                    { name: 'Phượt Xe Máy Lên Đỉnh Bàn Cờ', cost: -15000, energy: -15, chill: 40, exp: 25, icon: 'fa-mountain-sun', msg: 'Vượt dốc Sơn Trà qua Chùa Linh Ứng, thu trọn toàn cảnh thành phố Đà Nẵng vào tầm mắt!' },
+                    { name: 'Hải Sản Tươi Sống Ven Biển', cost: -120000, energy: 45, chill: 30, exp: 20, icon: 'fa-shrimp', msg: 'Thưởng thức bề bề rang muối, hàu nướng mỡ hành và cháo nghêu nóng hổi.' }
+                ]
+            },
+            {
+                id: 'nguhanhson',
+                name: 'Ngũ Hành Sơn',
+                title: 'Chợ Bắc Mỹ An & Khu FPT Hòa Quý',
+                desc: 'Thủ phủ ăn vặt sinh viên, chân cầu Trần Thị Lý và cung đường chạy bộ Hòa Quý.',
+                photo: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=1400&q=80',
+                actions: [
+                    { name: 'Kem Bơ Cô Vân Chợ Bắc Mỹ An', cost: -20000, energy: 15, chill: 28, exp: 15, icon: 'fa-ice-cream', msg: 'Trộn đều lớp bơ sáp sánh mịn với kem dừa mát lạnh và dừa khô giòn tan!' },
+                    { name: 'Chạy Bộ 6km Quanh Khu Đô Thị Hòa Quý', cost: 0, energy: -25, chill: 35, exp: 30, icon: 'fa-person-running', msg: 'Hoàn thành 6km đường thoáng đãng ở tốc độ mục tiêu Pace 5:00/km cực cháy!' },
+                    { name: 'Ram Cuốn Cải & Sữa Chua Muối', cost: -40000, energy: 25, chill: 22, exp: 14, icon: 'fa-pepper-hot', msg: 'Tụ tập dưới chân cầu Trần Thị Lý chấm sữa chua vị mặn độc lạ và đĩa ốc hút cay.' },
+                    { name: 'Tập Gym Tăng Cơ Chiều (Push/Pull)', cost: -25000, energy: -30, chill: 25, exp: 25, icon: 'fa-dumbbell', msg: 'Hoàn thành buổi tập tạ chất lượng, nạp thêm ức gà và chuối.' }
+                ]
+            },
+            {
+                id: 'lienchau',
+                name: 'Đèo Hải Vân',
+                title: 'Đèo Hải Vân & Bãi Đá Nam Ô',
+                desc: 'Thiên hạ đệ nhất hùng quan với khúc cua tay áo huyền thoại và gỏi cá trích Nam Ô.',
+                photo: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1400&q=80',
+                actions: [
+                    { name: 'Săn Mây Tại Cây Thông Cô Đơn Hải Vân', cost: -25000, energy: -15, chill: 45, exp: 28, icon: 'fa-tree', msg: 'Đứng giữa mây trời Hải Vân Quan, gió thổi mát rượi nhìn xuống vịnh Lăng Cô & Đà Nẵng.' },
+                    { name: 'Gỏi Cá Trích Nam Ô Chính Hiệu', cost: -70000, energy: 35, chill: 28, exp: 22, icon: 'fa-fish', msg: 'Cuốn cá trích tươi thấm tháp thính gạo với rau rừng chấm nước mắm đậu phộng đậm đà.' },
+                    { name: 'Cà Phê Ngắm Tàu Hỏa Qua Đèo', cost: -30000, energy: 15, chill: 30, exp: 15, icon: 'fa-train', msg: 'Ngồi bên vách đá nghe tiếng còi tàu vang vọng giữa núi rừng biển cả.' },
+                    { name: 'Chụp Bộ Ảnh Phong Cảnh Dark Moody', cost: 0, energy: -10, chill: 30, exp: 20, icon: 'fa-camera', msg: 'Bắt trọn khoảnh khắc hoàng hôn buông xuống vịnh biển bằng filter trầm ấm.' }
+                ]
+            },
+            {
+                id: 'home',
+                name: 'Phòng Trọ & Việc Làm',
+                title: 'Góc Riêng & Nhịp Sống Sinh Viên',
+                desc: 'Nơi nghỉ ngơi hồi phục thể lực, nấu cơm bulking và code đồ án nhúng/web.',
+                photo: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1400&q=80',
+                actions: [
+                    { name: 'Đặt Combo Cơm Tấm Sườn Bì Chả', cost: -40000, energy: 45, chill: 20, exp: 10, icon: 'fa-box-open', msg: 'Hộp cơm tấm sườn nướng đậm vị kèm trứng ốp la giúp hồi phục năng lượng cực nhanh!' },
+                    { name: 'Nấu Bữa Bulking (Ức Gà, Trứng, Yến Mạch)', cost: -30000, energy: 50, chill: 15, exp: 15, icon: 'fa-egg', msg: 'Bữa ăn giàu Protein tự chế biến vừa tiết kiệm vừa chuẩn dinh dưỡng.' },
+                    { name: 'Code Dự Án STM32 / Web API Docker', cost: 20000, energy: -25, chill: 15, exp: 35, icon: 'fa-microchip', msg: 'Fix xong bug giao tiếp UART/SPI và đẩy container lên server mượt mà!' },
+                    { name: 'Ngủ Một Giấc Thật Sâu Qua Ngày Mới', cost: 0, energy: 100, chill: 20, exp: 10, icon: 'fa-bed', msg: 'Đánh một giấc ngon lành, nạp đầy 100% Thể lực đón ngày mới tại Đà Nẵng!', sleep: true }
+                ]
+            }
+        ];
+
+        const BADGES = [
+            { id: 'b_miquang', name: 'Chiến Thần Ẩm Thực', desc: 'Đạt 50 EXP Thổ Địa', reqExp: 50, icon: '🍜' },
+            { id: 'b_shipper', name: 'Tay Lái Lụa Cầu Rồng', desc: 'Hoàn thành chuyến Shipper', flag: 'shipperWon', icon: '🛵' },
+            { id: 'b_football', name: 'Kèo Trái Sân 5', desc: 'Ghi bàn trong trận bóng sân 5', flag: 'footballWon', icon: '⚽' },
+            { id: 'b_master', name: 'Thổ Địa Đà Nẵng Chính Hiệu', desc: 'Đạt 150 EXP Thổ Địa', reqExp: 150, icon: '👑' }
+        ];
+
+        const DIALECT_QUIZ = [
+            { q: 'Trong tiếng địa phương Đà Nẵng - Quảng Nam, câu "Đi mô rứa?" có nghĩa là gì?', opts: ['Đi đâu đấy?', 'Ăn cơm chưa?', 'Mấy giờ rồi?'], ans: 0 },
+            { q: 'Khi bạn bè Đà Nẵng nói "Hồi hôm ni trời mưa dễ sợ", cụm "Hồi hôm" nghĩa là lúc nào?', opts: ['Trưa mai', 'Tối đêm qua', 'Tuần sau'], ans: 1 },
+            { q: 'Món "Ốc hút" trứ danh tại Chợ Bắc Mỹ An hay chân cầu Trần Thị Lý thường ăn kèm với gì?', opts: ['Đu đủ bào & bánh tráng', 'Bún tươi & chả giò', 'Cơm trắng'], ans: 0 }
+        ];
+
+        // =========================================================================
+        // 2. STATE MANAGEMENT & URL CLOUD SYNC
+        // =========================================================================
+        let state = {
+            day: 1,
+            timeIndex: 0, // 0: Sáng, 1: Trưa, 2: Chiều, 3: Tối
+            weather: 'sunny', // sunny, rain, dragonfire
+            energy: 100,
+            chill: 80,
+            money: 250000,
+            exp: 0,
+            currentDistrict: 'haichau',
+            shipperWon: false,
+            footballWon: false,
+            audioEnabled: true
+        };
+
+        const TIME_SLOTS = [
+            { label: '06:00 - Sáng Sớm', overlay: 'linear-gradient(180deg, rgba(251,146,60,0.22) 0%, rgba(15,23,42,0.7) 100%)', filter: 'brightness(1.02) contrast(1.08)' },
+            { label: '12:00 - Trưa Nắng', overlay: 'linear-gradient(180deg, rgba(56,189,248,0.12) 0%, rgba(15,23,42,0.65) 100%)', filter: 'brightness(1.12) contrast(1.15) saturate(1.15)' },
+            { label: '17:15 - Hoàng Hôn', overlay: 'linear-gradient(180deg, rgba(244,63,94,0.32) 0%, rgba(30,27,75,0.8) 100%)', filter: 'brightness(0.95) contrast(1.2) sepia(0.18)' },
+            { label: '21:00 - Đêm Sông Hàn', overlay: 'linear-gradient(180deg, rgba(15,23,42,0.55) 0%, rgba(2,6,23,0.9) 100%)', filter: 'brightness(0.82) contrast(1.35) saturate(1.2)' }
+        ];
+
+        function loadState() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('save')) {
+                try {
+                    const decoded = JSON.parse(atob(params.get('save')));
+                    state = { ...state, ...decoded };
+                    addLog('☁️ Đã đồng bộ dữ liệu nhân vật từ mã QR thành công!', 'text-cyan-300');
+                } catch (e) {}
+            } else {
+                const saved = localStorage.getItem('danang_sim_v1');
+                if (saved) {
+                    try { state = { ...state, ...JSON.parse(saved) }; } catch (e) {}
+                }
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('danang_sim_v1', JSON.stringify(state));
+            updateUI();
+        }
+
+        // =========================================================================
+        // 3. WEB AUDIO API SYNTHESIZER (KHÔNG CẦN FILE MP3 NGOÀI)
+        // =========================================================================
+        let audioCtx = null;
+        function playSound(type) {
+            if (!state.audioEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+                if (type === 'click') {
+                    osc.frequency.setValueAtTime(520, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now); osc.stop(now + 0.08);
+                } else if (type === 'coin') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(660, now);
+                    osc.frequency.setValueAtTime(990, now + 0.09);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now); osc.stop(now + 0.25);
+                } else if (type === 'fire') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(140, now);
+                    osc.frequency.linearRampToValueAtTime(60, now + 0.45);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.45);
+                    osc.start(now); osc.stop(now + 0.45);
+                }
+            } catch (e) {}
+        }
+
+        function toggleAudio() {
+            state.audioEnabled = !state.audioEnabled;
+            document.getElementById('btn-audio').innerHTML = state.audioEnabled ? '<i class="fa-solid fa-volume-high"></i>' : '<i class="fa-solid fa-volume-xmark text-rose-400"></i>';
+        }
+
+        // =========================================================================
+        // 4. UI RENDERING & GAMEPLAY ACTIONS
+        // =========================================================================
+        function formatVND(num) {
+            return num.toLocaleString('vi-VN') + 'đ';
+        }
+
+        function updateUI() {
+            state.energy = Math.max(0, Math.min(100, state.energy));
+            state.chill = Math.max(0, Math.min(100, state.chill));
+
+            document.getElementById('ui-day').innerHTML = `<i class="fa-regular fa-calendar text-cyan-400 mr-1"></i>Ngày ${state.day}`;
+            document.getElementById('ui-time').innerHTML = `<i class="fa-regular fa-clock mr-1"></i>${TIME_SLOTS[state.timeIndex].label}`;
+            
+            document.getElementById('stat-energy-text').innerText = `${state.energy}/100`;
+            document.getElementById('stat-energy-bar').style.width = `${state.energy}%`;
+            document.getElementById('stat-chill-text').innerText = `${state.chill}/100`;
+            document.getElementById('stat-chill-bar').style.width = `${state.chill}%`;
+            document.getElementById('stat-money').innerText = formatVND(state.money);
+            document.getElementById('stat-exp').innerText = `${state.exp} EXP`;
+
+            // Rank Badge
+            let rank = 'Tân Binh Phố Biển';
+            if (state.exp >= 150) rank = '👑 Thổ Địa Đà Nẵng';
+            else if (state.exp >= 60) rank = '⚡ Dân Chơi Cầu Rồng';
+            document.getElementById('badge-rank').innerText = rank;
+
+            // Current District
+            const dist = DISTRICTS.find(d => d.id === state.currentDistrict) || DISTRICTS[0];
+            document.getElementById('loc-title').innerText = dist.title;
+            document.getElementById('loc-desc').innerText = dist.desc;
+            document.getElementById('loc-tag').innerText = dist.name;
+            const bg = document.getElementById('scenery-bg');
+            bg.style.backgroundImage = `url('${dist.photo}')`;
+            bg.style.filter = TIME_SLOTS[state.timeIndex].filter;
+            document.getElementById('scenery-lighting').style.background = TIME_SLOTS[state.timeIndex].overlay;
+
+            // Render District Tabs
+            const tabsHtml = DISTRICTS.map(d => {
+                const active = d.id === state.currentDistrict;
+                return `<button onclick="travelTo('${d.id}')" class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${active ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25' : 'glass-card text-slate-300 hover:text-white'}">
+                    <span>${d.name}</span>
+                </button>`;
+            }).join('');
+            document.getElementById('district-tabs').innerHTML = tabsHtml;
+
+            // Render Actions
+            const actionsHtml = dist.actions.map((act, idx) => {
+                const costStr = act.cost === 0 ? 'Miễn phí' : (act.cost > 0 ? `+${formatVND(act.cost)}` : formatVND(act.cost));
+                const costColor = act.cost >= 0 ? 'text-emerald-400' : 'text-amber-300';
+                return `<div onclick="executeAction(${idx})" class="glass-card p-3 rounded-xl cursor-pointer flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-lg bg-slate-800 flex items-center justify-center text-cyan-400 shrink-0">
+                            <i class="fa-solid ${act.icon}"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-white">${act.name}</div>
+                            <div class="text-[10px] text-slate-400">⚡ ${act.energy > 0 ? '+'+act.energy : act.energy} | 😊 +${act.chill} | 🌟 +${act.exp} EXP</div>
+                        </div>
+                    </div>
+                    <span class="text-xs font-extrabold ${costColor} shrink-0">${costStr}</span>
+                </div>`;
+            }).join('');
+            document.getElementById('actions-grid').innerHTML = actionsHtml;
+
+            renderBadges();
+        }
+
+        function addLog(text, colorClass = 'text-slate-200') {
+            const log = document.getElementById('activity-log');
+            const timeStr = TIME_SLOTS[state.timeIndex].label.split(' ')[0];
+            const item = document.createElement('div');
+            item.className = `p-2 rounded-lg bg-slate-900/80 border border-slate-800/90 ${colorClass}`;
+            item.innerHTML = `<span class="text-[10px] font-bold text-slate-400 mr-1.5">[Ngày ${state.day} - ${timeStr}]</span>${text}`;
+            log.prepend(item);
+        }
+
+        function travelTo(distId) {
+            if (distId === state.currentDistrict) return;
+            if (state.energy < 5) {
+                addLog('⚠️ Bạn đã kiệt sức! Hãy ăn uống hoặc về phòng ngủ để hồi phục Thể lực.', 'text-rose-400');
+                return;
+            }
+            playSound('click');
+            state.energy -= 5;
+            state.currentDistrict = distId;
+            const dist = DISTRICTS.find(d => d.id === distId);
+            addLog(`🛵 Chạy xe Wave RSX qua <b>${dist.title}</b> (-5 Thể lực).`, 'text-sky-300');
+            maybeTriggerRandomEvent();
+            saveState();
+        }
+
+        function executeAction(idx) {
+            const dist = DISTRICTS.find(d => d.id === state.currentDistrict);
+            const act = dist.actions[idx];
+            if (act.cost < 0 && state.money + act.cost < 0) {
+                addLog('💸 Ví không đủ tiền! Hãy bật chế độ Chạy Shipper hoặc làm việc để kiếm thêm thu nhập.', 'text-rose-400');
+                return;
+            }
+            if (act.energy < 0 && state.energy + act.energy < 0) {
+                addLog('⚡ Không đủ Thể lực! Hãy ăn tô Mì Quảng hoặc Cơm Tấm trước nhé.', 'text-rose-400');
+                return;
+            }
+
+            playSound(act.cost > 0 ? 'coin' : 'click');
+            state.money += act.cost;
+            state.energy += act.energy;
+            state.chill += act.chill;
+            state.exp += act.exp;
+
+            addLog(`✨ <b>${act.name}:</b> ${act.msg}`, 'text-emerald-300');
+
+            if (act.sleep) {
+                state.day += 1;
+                state.timeIndex = 0;
+            } else {
+                advanceTime(true);
+            }
+            saveState();
+        }
+
+        function advanceTime(silent = false) {
+            state.timeIndex += 1;
+            if (state.timeIndex > 3) {
+                state.timeIndex = 0;
+                state.day += 1;
+                addLog(`🌅 Bình minh ngày thứ ${state.day} trên biển Mỹ Khê!`, 'text-amber-300');
+            }
+            if (state.timeIndex === 3 && state.currentDistrict === 'haichau') {
+                triggerDragonFire();
+            }
+            if (!silent) {
+                playSound('click');
+                saveState();
+            }
+        }
+
+        // =========================================================================
+        // 5. RANDOM EVENTS & DIALECT QUIZ
+        // =========================================================================
+        function maybeTriggerRandomEvent() {
+            if (Math.random() > 0.45) return;
+            const events = [
+                {
+                    title: '🌧️ MƯA RÀO BẤT CHỢT TRÊN ĐƯỜNG NGUYỄN VĂN LINH',
+                    text: 'Đang chạy xe trời nắng đẹp bỗng dưng mây đen kéo tới đổ mưa rào ngang hông!',
+                    choices: [
+                        { label: 'Tấp vào quán ăn tô Bún Mắm Nêm (-25k, +25 Chill)', cb: () => { state.money -= 25000; state.chill += 25; state.exp += 10; addLog('🍜 Ăn tô bún mắm nêm thịt quay ấm bụng chờ tạnh mưa!'); } },
+                        { label: 'Mặc áo mưa chạy tiếp (+10 EXP)', cb: () => { state.exp += 10; addLog('🛵 Khoác áo mưa băng qua cầu Rồng như một thổ địa thực thụ.'); } }
+                    ]
+                },
+                {
+                    title: '🐒 ĐÀN KHỈ BÁN ĐẢO SƠN TRÀ',
+                    text: 'Một chú khỉ trên đường lên Chùa Linh Ứng nhảy ra nhìn bịch bánh tráng của bạn!',
+                    choices: [
+                        { label: 'Cất kỹ đồ ăn vào cốp xe & chụp ảnh (+15 EXP)', cb: () => { state.exp += 15; state.chill += 15; addLog('📸 Bảo vệ môi trường tự nhiên Sơn Trà, nhận +15 EXP!'); } }
+                    ]
+                }
+            ];
+            const ev = events[Math.floor(Math.random() * events.length)];
+            const box = document.getElementById('event-box');
+            document.getElementById('event-title').innerText = ev.title;
+            document.getElementById('event-text').innerText = ev.text;
+            const choicesDiv = document.getElementById('event-choices');
+            choicesDiv.innerHTML = '';
+            ev.choices.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = 'px-2.5 py-1 rounded-lg bg-indigo-500/30 hover:bg-indigo-500/50 text-indigo-200 text-[11px] font-bold border border-indigo-400/30';
+                btn.innerText = c.label;
+                btn.onclick = () => { c.cb(); box.classList.add('hidden'); saveState(); };
+                choicesDiv.appendChild(btn);
+            });
+            box.classList.remove('hidden');
+        }
+
+        function startDialectQuiz() {
+            switchPhoneTab('feed');
+            const qObj = DIALECT_QUIZ[Math.floor(Math.random() * DIALECT_QUIZ.length)];
+            const box = document.getElementById('event-box');
+            document.getElementById('event-title').innerText = '🗣️ THỬ THÁCH TIẾNG ĐÀ NẴNG (+30.000đ & +20 EXP)';
+            document.getElementById('event-text').innerText = qObj.q;
+            const choicesDiv = document.getElementById('event-choices');
+            choicesDiv.innerHTML = '';
+            qObj.opts.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'px-2.5 py-1 rounded-lg bg-purple-500/30 hover:bg-purple-500/50 text-purple-200 text-[11px] font-bold border border-purple-400/30';
+                btn.innerText = opt;
+                btn.onclick = () => {
+                    if (i === qObj.ans) {
+                        playSound('coin');
+                        state.money += 30000;
+                        state.exp += 20;
+                        addLog('🎉 Trả lời chuẩn xác tiếng địa phương Đà Nẵng! Nhận +30.000đ và +20 EXP.', 'text-amber-300');
+                    } else {
+                        addLog('😅 Chưa chính xác rồi, thử lại câu khác nhé!', 'text-rose-300');
+                    }
+                    box.classList.add('hidden');
+                    saveState();
+                };
+                choicesDiv.appendChild(btn);
+            });
+            box.classList.remove('hidden');
+        }
+
+        // =========================================================================
+        // 6. 60FPS PARTICLE ENGINE (CẦU RỒNG PHUN LỬA & MƯA RÀO)
+        // =========================================================================
+        const fxCanvas = document.getElementById('fx-canvas');
+        const fxCtx = fxCanvas.getContext('2d');
+        let particles = [];
+        let dragonFireTimer = 0;
+
+        function resizeCanvas() {
+            fxCanvas.width = fxCanvas.clientWidth || 600;
+            fxCanvas.height = fxCanvas.clientHeight || 360;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        setTimeout(resizeCanvas, 100);
+
+        function triggerDragonFire() {
+            dragonFireTimer = 180; // ~3 seconds at 60fps
+            playSound('fire');
+            addLog('🔥 CẦU RỒNG PHUN LỬA & PHUN NƯỚC! Cả bờ sông Hàn vỡ òa thích thú (+15 Chill).', 'text-amber-300');
+            state.chill = Math.min(100, state.chill + 15);
+            saveState();
+        }
+
+        function cycleWeather() {
+            state.weather = state.weather === 'sunny' ? 'rain' : 'sunny';
+            document.getElementById('ui-weather').innerHTML = state.weather === 'rain' 
+                ? '<i class="fa-solid fa-cloud-showers-heavy mr-1 text-sky-400"></i>Mưa rào 24°C' 
+                : '<i class="fa-solid fa-sun mr-1 text-amber-300"></i>Nắng đẹp 28°C';
+            playSound('click');
+        }
+
+        function updateParticles() {
+            fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+
+            // Spawn Dragon Fire Particles
+            if (dragonFireTimer > 0) {
+                dragonFireTimer--;
+                for (let i = 0; i < 6; i++) {
+                    particles.push({
+                        x: fxCanvas.width * 0.78,
+                        y: fxCanvas.height * 0.72,
+                        vx: (Math.random() * 4.5) + 1.5,
+                        vy: (Math.random() * -3.5) - 0.5,
+                        size: Math.random() * 8 + 4,
+                        color: Math.random() > 0.3 ? `rgba(251, 146, 60, 0.85)` : `rgba(239, 68, 68, 0.9)`,
+                        life: 35
+                    });
+                }
+            }
+
+            // Spawn Rain Particles
+            if (state.weather === 'rain') {
+                for (let i = 0; i < 4; i++) {
+                    particles.push({
+                        x: Math.random() * fxCanvas.width,
+                        y: -10,
+                        vx: -1.5,
+                        vy: 9 + Math.random() * 4,
+                        size: 2,
+                        isRain: true,
+                        life: 60
+                    });
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                if (p.isRain) {
+                    fxCtx.strokeStyle = 'rgba(186, 230, 253, 0.55)';
+                    fxCtx.lineWidth = 1.2;
+                    fxCtx.beginPath();
+                    fxCtx.moveTo(p.x, p.y);
+                    fxCtx.lineTo(p.x + p.vx, p.y + 8);
+                    fxCtx.stroke();
+                } else {
+                    fxCtx.fillStyle = p.color;
+                    fxCtx.beginPath();
+                    fxCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    fxCtx.fill();
+                }
+                if (p.life <= 0 || p.y > fxCanvas.height) particles.splice(i, 1);
+            }
+            requestAnimationFrame(updateParticles);
+        }
+        requestAnimationFrame(updateParticles);
+
+        // =========================================================================
+        // 7. MINI-GAMES (CHẠY SHIPPER & ĐÁ BÓNG SÂN 5)
+        // =========================================================================
+        const mgCanvas = document.getElementById('mg-canvas');
+        const mgCtx = mgCanvas.getContext('2d');
+        let mgActive = null; // 'shipper' | 'football'
+        let mgLoopId = null;
+        let playerY = 110, playerVy = 0, progress = 0, obstacles = [];
+        let ballX = 90, ballY = 120, goalieY = 100, goalieDir = 2.5, aimAngle = 0, aimDir = 0.04, ballMoving = false, ballVx = 0, ballVy = 0;
+
+        function startShipperGame() {
+            if (state.energy < 15) {
+                addLog('⚡ Cần ít nhất 15 Thể lực để bật app chạy đơn Shipper!', 'text-rose-400');
+                return;
+            }
+            state.energy -= 15;
+            mgActive = 'shipper';
+            playerY = 110; playerVy = 0; progress = 0; obstacles = [];
+            document.getElementById('mg-title').innerText = '🛵 SHIPPER GIAO ĐƠN QUA CẦU RỒNG (+90.000đ)';
+            document.getElementById('mg-sub').innerText = 'Né xe tải & ổ gà! Dùng phím W/S, Mũi tên Lên/Xuống hoặc nút bấm cảm ứng.';
+            document.getElementById('minigame-overlay').classList.remove('hidden');
+            if (mgLoopId) cancelAnimationFrame(mgLoopId);
+            mgLoop();
+        }
+
+        function startFootballGame() {
+            mgActive = 'football';
+            ballX = 80; ballY = 120; ballMoving = false;
+            document.getElementById('mg-title').innerText = '⚽ SÚT PHẠT SÂN CỎ NHÂN TẠO 5 NGƯỜI';
+            document.getElementById('mg-sub').innerText = 'Canh hướng mũi tên và nhấn nút [Sút Bóng / Phím Space] để cứa lòng chân trái!';
+            document.getElementById('minigame-overlay').classList.remove('hidden');
+            if (mgLoopId) cancelAnimationFrame(mgLoopId);
+            mgLoop();
+        }
+
+        function closeMiniGame() {
+            mgActive = null;
+            if (mgLoopId) cancelAnimationFrame(mgLoopId);
+            document.getElementById('minigame-overlay').classList.add('hidden');
+            saveState();
+        }
+
+        function mgMove(dir) { playerVy = dir * 4; }
+        function mgStop() { playerVy = 0; }
+        function mgSpecialAction() {
+            if (mgActive === 'shipper') {
+                progress += 8;
+                playSound('click');
+            } else if (mgActive === 'football' && !ballMoving) {
+                ballMoving = true;
+                ballVx = 9;
+                ballVy = Math.sin(aimAngle) * 6;
+                playSound('click');
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (!mgActive) return;
+            if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') mgMove(-1);
+            if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') mgMove(1);
+            if (e.key === ' ') { e.preventDefault(); mgSpecialAction(); }
+        });
+        window.addEventListener('keyup', (e) => {
+            if (['w','W','s','S','ArrowUp','ArrowDown'].includes(e.key)) mgStop();
+        });
+
+        function mgLoop() {
+            if (!mgActive) return;
+            mgCtx.clearRect(0, 0, mgCanvas.width, mgCanvas.height);
+
+            if (mgActive === 'shipper') {
+                // Draw Road
+                mgCtx.fillStyle = '#1e293b';
+                mgCtx.fillRect(0, 30, mgCanvas.width, 180);
+                mgCtx.strokeStyle = '#fbbf24';
+                mgCtx.setLineDash([20, 15]);
+                mgCtx.beginPath(); mgCtx.moveTo(0, 120); mgCtx.lineTo(mgCanvas.width, 120); mgCtx.stroke();
+
+                // Update Player
+                playerY = Math.max(40, Math.min(185, playerY + playerVy));
+                mgCtx.fillStyle = '#38bdf8';
+                mgCtx.fillRect(50, playerY, 34, 18);
+                mgCtx.fillStyle = '#ffffff';
+                mgCtx.font = '12px sans-serif';
+                mgCtx.fillText('🛵', 55, playerY + 14);
+
+                // Obstacles
+                if (Math.random() < 0.04) {
+                    obstacles.push({ x: mgCanvas.width, y: 45 + Math.random() * 140, w: 36, h: 20 });
+                }
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    const o = obstacles[i];
+                    o.x -= 4.8;
+                    mgCtx.fillStyle = '#f43f5e';
+                    mgCtx.fillRect(o.x, o.y, o.w, o.h);
+                    mgCtx.fillText('🚗', o.x + 8, o.y + 15);
+
+                    // Collision check
+                    if (50 < o.x + o.w && 50 + 34 > o.x && playerY < o.y + o.h && playerY + 18 > o.y) {
+                        addLog('💥 Va chạm nhẹ trên đường! Hãy cẩn thận tay lái nhé.', 'text-rose-400');
+                        closeMiniGame();
+                        return;
+                    }
+                    if (o.x < -40) obstacles.splice(i, 1);
+                }
+
+                progress += 0.35;
+                document.getElementById('mg-score').innerText = `Quãng đường: ${Math.floor(progress)}/100m`;
+                if (progress >= 100) {
+                    playSound('coin');
+                    state.money += 90000;
+                    state.exp += 25;
+                    state.shipperWon = true;
+                    addLog('🛵 Giao đơn thành công vượt Cầu Rồng! Khách tip sộp tổng cộng +90.000đ và +25 EXP.', 'text-emerald-300');
+                    closeMiniGame();
+                    return;
+                }
+            } else if (mgActive === 'football') {
+                // Pitch
+                mgCtx.fillStyle = '#064e3b';
+                mgCtx.fillRect(0, 0, mgCanvas.width, mgCanvas.height);
+                mgCtx.strokeStyle = '#ffffff';
+                mgCtx.setLineDash([]);
+                mgCtx.strokeRect(10, 10, mgCanvas.width - 20, mgCanvas.height - 20);
+                // Goal
+                mgCtx.fillStyle = 'rgba(255,255,255,0.2)';
+                mgCtx.fillRect(475, 55, 30, 130);
+
+                // Goalie
+                goalieY += goalieDir;
+                if (goalieY < 60 || goalieY > 165) goalieDir *= -1;
+                mgCtx.fillStyle = '#f59e0b';
+                mgCtx.fillRect(455, goalieY, 14, 28);
+
+                // Aim line
+                if (!ballMoving) {
+                    aimAngle += aimDir;
+                    if (aimAngle > 0.7 || aimAngle < -0.7) aimDir *= -1;
+                    mgCtx.strokeStyle = '#38bdf8';
+                    mgCtx.beginPath();
+                    mgCtx.moveTo(ballX, ballY);
+                    mgCtx.lineTo(ballX + 90, ballY + Math.sin(aimAngle) * 65);
+                    mgCtx.stroke();
+                } else {
+                    ballX += ballVx;
+                    ballY += ballVy;
+                    // Check goalie block
+                    if (ballX > 448 && ballX < 472 && ballY > goalieY - 8 && ballY < goalieY + 34) {
+                        addLog('🧤 Thủ môn đội bạn cản phá xuất sắc! Bấm Đá Bóng để sút lại nhé.', 'text-amber-300');
+                        closeMiniGame();
+                        return;
+                    }
+                    // Check Goal
+                    if (ballX >= 475 && ballY > 55 && ballY < 185) {
+                        playSound('coin');
+                        state.chill = Math.min(100, state.chill + 35);
+                        state.exp += 25;
+                        state.footballWon = true;
+                        addLog('⚽ VÀOOO! Cú sút chân trái cháy lưới sân 5! (+35 Độ Chill, +25 EXP)', 'text-emerald-300');
+                        closeMiniGame();
+                        return;
+                    }
+                    if (ballX > mgCanvas.width || ballY < 0 || ballY > mgCanvas.height) {
+                        addLog('💨 Bóng đi chệch cột dọc trong gang tấc!', 'text-rose-300');
+                        closeMiniGame();
+                        return;
+                    }
+                }
+
+                mgCtx.fillStyle = '#ffffff';
+                mgCtx.beginPath();
+                mgCtx.arc(ballX, ballY, 8, 0, Math.PI * 2);
+                mgCtx.fill();
+            }
+
+            mgLoopId = requestAnimationFrame(mgLoop);
+        }
+
+        // =========================================================================
+        // 8. PHOTO MODE (DARK MOODY FILTER) & ACHIEVEMENTS
+        // =========================================================================
+        function switchPhoneTab(tab) {
+            ['feed', 'camera', 'badges'].forEach(t => {
+                document.getElementById(`phone-tab-${t}`).classList.add('hidden');
+                document.getElementById(`phone-tab-${t}`).classList.remove('flex');
+                document.getElementById(`tab-btn-${t}`).className = 'px-2 py-0.5 rounded hover:bg-slate-800 text-slate-400';
+            });
+            document.getElementById(`phone-tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`phone-tab-${tab}`).classList.add('flex');
+            document.getElementById(`tab-btn-${tab}`).className = 'px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold';
+        }
+
+        function openPhotoMode() {
+            switchPhoneTab('camera');
+            applyPhotoPreset('moody');
+        }
+
+        function updatePhotoFilter() {
+            const b = document.getElementById('slider-bright').value;
+            const c = document.getElementById('slider-contrast').value;
+            const s = document.getElementById('slider-sat').value;
+            const sep = document.getElementById('slider-sepia').value;
+            document.getElementById('val-bright').innerText = b + '%';
+            document.getElementById('val-contrast').innerText = c + '%';
+            document.getElementById('val-sat').innerText = s + '%';
+            document.getElementById('val-sepia').innerText = sep + '%';
+            document.getElementById('scenery-bg').style.filter = `brightness(${b}%) contrast(${c}%) saturate(${s}%) sepia(${sep}%)`;
+        }
+
+        function applyPhotoPreset(preset) {
+            if (preset === 'moody') {
+                document.getElementById('slider-bright').value = 82;
+                document.getElementById('slider-contrast').value = 138;
+                document.getElementById('slider-sat').value = 78;
+                document.getElementById('slider-sepia').value = 18;
+            } else if (preset === 'vivid') {
+                document.getElementById('slider-bright').value = 110;
+                document.getElementById('slider-contrast').value = 120;
+                document.getElementById('slider-sat').value = 135;
+                document.getElementById('slider-sepia').value = 0;
+            } else {
+                document.getElementById('slider-bright').value = 100;
+                document.getElementById('slider-contrast').value = 100;
+                document.getElementById('slider-sat').value = 100;
+                document.getElementById('slider-sepia').value = 0;
+            }
+            updatePhotoFilter();
+        }
+
+        function postPhotoToFeed() {
+            playSound('coin');
+            state.money += 35000;
+            state.exp += 15;
+            switchPhoneTab('feed');
+            addLog('📸 Đã đăng bức ảnh Đà Nẵng chỉnh tone Dark Moody cực nghệ! Nhận +35.000đ tiền nhuận bút review và +15 EXP.', 'text-pink-300');
+            saveState();
+        }
+
+        function renderBadges() {
+            const html = BADGES.map(b => {
+                const unlocked = (b.reqExp && state.exp >= b.reqExp) || (b.flag && state[b.flag]);
+                return `<div class="p-2.5 rounded-xl border ${unlocked ? 'bg-amber-500/15 border-amber-400/40 text-amber-200' : 'bg-slate-900/50 border-slate-800 text-slate-500'} flex items-center gap-2">
+                    <span class="text-xl">${b.icon}</span>
+                    <div>
+                        <div class="text-xs font-bold">${b.name}</div>
+                        <div class="text-[10px]">${b.desc}</div>
+                    </div>
+                </div>`;
+            }).join('');
+            document.getElementById('badges-grid').innerHTML = html;
+        }
+
+        // =========================================================================
+        // 9. QR CODE ENGINE FOR PERMANENT WEB & CROSS-DEVICE PLAY
+        // =========================================================================
+        let sideQR = null;
+        let modalQR = null;
+
+        function initQR() {
+            const urlInput = document.getElementById('qr-url-input');
+            urlInput.value = window.location.href;
+            refreshQRCodes();
+        }
+
+        function refreshQRCodes() {
+            const targetUrl = document.getElementById('qr-url-input').value.trim() || window.location.href;
+            const sideContainer = document.getElementById('side-qrcode');
+            const modalContainer = document.getElementById('modal-qrcode');
+            sideContainer.innerHTML = '';
+            modalContainer.innerHTML = '';
+            new QRCode(sideContainer, { text: targetUrl, width: 84, height: 84, colorDark: "#090d16", colorLight: "#ffffff" });
+            new QRCode(modalContainer, { text: targetUrl, width: 170, height: 170, colorDark: "#090d16", colorLight: "#ffffff" });
+        }
+
+        function syncStateToQR() {
+            const baseUrl = window.location.href.split('?')[0];
+            const encoded = btoa(JSON.stringify({
+                day: state.day,
+                money: state.money,
+                exp: state.exp,
+                energy: state.energy,
+                chill: state.chill
+            }));
+            const fullUrl = `${baseUrl}?save=${encoded}`;
+            document.getElementById('qr-url-input').value = fullUrl;
+            refreshQRCodes();
+            playSound('coin');
+            addLog('🔗 Đã nhúng toàn bộ Tiền & EXP hiện tại vào Mã QR! Quét bằng điện thoại để chơi tiếp ngay.', 'text-cyan-300');
+        }
+
+        function copyShareLink() {
+            const input = document.getElementById('qr-url-input');
+            navigator.clipboard.writeText(input.value);
+            addLog('📋 Đã sao chép đường link chơi game vào bộ nhớ tạm!', 'text-sky-300');
+        }
+
+        function openQRModal() {
+            syncStateToQR();
+            document.getElementById('qr-modal').classList.remove('hidden');
+        }
+        function closeQRModal() {
+            document.getElementById('qr-modal').classList.add('hidden');
+        }
+
+        function resetGame() {
+            localStorage.removeItem('danang_sim_v1');
+            window.location.href = window.location.href.split('?')[0];
+        }
+
+        // Parallax Effect on PC Mouse Move
+        document.getElementById('viewport-container').addEventListener('mousemove', (e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width - 0.5) * 10;
+            const y = ((e.clientY - rect.top) / rect.height - 0.5) * 10;
+            document.getElementById('scenery-bg').style.transform = `scale(1.06) translate(${x}px, ${y}px)`;
+        });
+
+        // Initialize Game
+        loadState();
+        updateUI();
+        initQR();
+        addLog('🌊 Chào mừng đến với <b>Đà Nẵng Life Simulator</b>! Hãy chọn địa điểm để ăn Mì Quảng, chạy Shipper hoặc ngắm Cầu Rồng phun lửa.', 'text-amber-300');
+    </script>
+</body>
+</html>
